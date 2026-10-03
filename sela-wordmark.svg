@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="420" viewBox="0 0 1400 420" role="img" aria-labelledby="title desc">
+  <title id="title">SELA MCP Gateway</title>
+  <desc id="desc">SELA wordmark with MCP Gateway by KRONEUS below, on a dark blue background.</desc>
+  <rect width="1400" height="420" rx="32" fill="#0b1424"/>
+  <rect x="76" y="90" width="10" height="240" rx="5" fill="#56b4ee"/>
+  <text x="120" y="257" fill="#f5f8ff" font-family="Arial, Helvetica, sans-serif" font-size="210" font-weight="700" letter-spacing="18">SELA</text>
+  <text x="128" y="327" fill="#a5c3df" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="500" letter-spacing="5">MCP GATEWAY BY KRONEUS</text>
+</svg>
