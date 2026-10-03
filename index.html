@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SELA MCP Gateway — connection guide</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, sans-serif; color: #182739; background: #f4f7fb; }
+    body { max-width: 900px; margin: 40px auto; padding: 0 24px 48px; line-height: 1.65; }
+    header, section { background: white; border: 1px solid #dce3ed; border-radius: 12px; padding: 24px 28px; margin: 18px 0; }
+    h1 { font-size: 2rem; line-height: 1.2; margin: 8px 0; }
+    h2 { font-size: 1.25rem; margin-top: 0; }
+    h3 { font-size: 1rem; }
+    .label { color: #346695; font-weight: 700; letter-spacing: .04em; font-size: .85rem; }
+    .wordmark { display: block; width: 100%; max-width: 440px; height: auto; margin-bottom: 20px; border-radius: 10px; }
+    .notice { border-left: 4px solid #c28518; padding-left: 16px; }
+    code { font-size: .88em; overflow-wrap: anywhere; background: #eef3f8; padding: 2px 5px; border-radius: 4px; }
+    li { margin: 8px 0; }
+    a { color: #185ea5; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { text-align: left; border-bottom: 1px solid #dce3ed; padding: 10px 6px; vertical-align: top; }
+    footer { font-size: .85rem; color: #5a6d80; }
+    @media (max-width: 600px) { body { padding: 0 12px 24px; margin-top: 18px; } header, section { padding: 18px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <img class="wordmark" src="sela-wordmark.svg" alt="SELA MCP Gateway by KRONEUS" width="1400" height="420">
+    <div class="label">KRONEUS · SELA MCP Gateway</div>
+    <h1>Connect provider tools through SELA</h1>
+    <p>Operator guide for connecting upstream MCP servers using OAuth and reviewing their tools before agent access.</p>
+    <p class="notice"><strong>Private development preview.</strong> These are operator setup instructions for the current SELA MCP client. Vercel approval, a reviewer-accessible build or environment, and live authenticated connection tests are pending.</p>
+  </header>
+  <section>
+    <h2>1. Obtain a SELA environment</h2>
+    <p>SELA is currently provided as a private operator-managed environment. Obtain the approved build, deployment instructions and a security-administrator account from KRONEUS. This draft does not offer a public download or a provisioned reviewer tenant.</p>
+    <p>For a local test, run the supplied SELA backend and console on the same workstation used for provider sign-in. Open <code>http://127.0.0.1:8000/dashboard/mcp_connectors.html</code> and sign in through SELA's normal authentication flow.</p>
+    <p>Remote environments must use HTTPS. A local loopback callback works only on the workstation running SELA; it is not a public reviewer endpoint.</p>
+  </section>
+  <section>
+    <h2>2. Configure OAuth on the SELA backend</h2>
+    <ol>
+      <li>Set <code>SELA_MCP_OAUTH_CALLBACK_URL</code> to the exact callback registered with the provider. For this local test: <code>http://127.0.0.1:8000/api/mcp-connect/oauth/callback</code>.</li>
+      <li>Configure an encryption key for stored tokens: <code>SELA_MCP_OAUTH_KEY</code>, a base64-encoded key of at least 32 bytes, or the existing application <code>ENCRYPTION_KEY</code>. Keep this key in the backend secret store.</li>
+      <li>Store the provider's client secret in the backend secret store. The console accepts a reference such as <code>sela-secret://vercel_oauth_client_secret</code>; it does not accept a literal client secret. Configure that reference to resolve before starting OAuth.</li>
+      <li>Use SELA's approved outbound network route for discovery, token exchange and upstream MCP traffic.</li>
+    </ol>
+    <p>SELA discovers the provider's protected-resource and authorization-server metadata, uses authorization code flow with PKCE S256, and binds a single-use expiring state to the connection. Access and refresh tokens are stored encrypted in the backend. The browser and enrolled agents receive connection status, not those tokens.</p>
+  </section>
+  <section>
+    <h2>3. Register the provider client</h2>
+    <table>
+      <thead><tr><th>Provider</th><th>Client registration and test endpoint</th></tr></thead>
+      <tbody>
+        <tr><td>GitHub</td><td>Register SELA's own GitHub App or OAuth App. GitHub does not support dynamic client registration. For least-privilege tests, use a GitHub App with read-only repository contents and selected test repositories. Upstream endpoint: <code>https://api.githubcopilot.com/mcp/readonly</code>.</td></tr>
+        <tr><td>Vercel</td><td>Request review and callback approval for SELA as an MCP client. An ordinary Vercel sign-in application does not establish MCP client approval. Upstream endpoint: <code>https://mcp.vercel.com</code>. Use the client registration and authentication method approved by Vercel.</td></tr>
+      </tbody>
+    </table>
+    <p>Current Vercel metadata advertises confidential-client authentication methods. This SELA build supports a supplied client ID and backend client secret using <code>client_secret_basic</code> or <code>client_secret_post</code>. Its generic public-client dynamic registration requires advertised support for <code>none</code>; that path cannot be assumed to work with Vercel.</p>
+  </section>
+  <section>
+    <h2>4. Connect from the console</h2>
+    <ol>
+      <li>Open <strong>MCP Connectors</strong> as a SELA security administrator.</li>
+      <li>Choose the GitHub or Vercel app card. Register a connector with its official endpoint and OAuth authentication, or open the existing matching connector.</li>
+      <li>Open <strong>OAuth connection settings</strong>. Enter SELA's registered client ID and the backend <code>sela-secret://</code> reference. Request only the necessary provider scopes; do not copy the full advertised scope list.</li>
+      <li>Choose <strong>Sign in</strong>. Complete the provider's sign-in and review the requested access in the popup.</li>
+      <li>The provider returns to SELA's registered callback. Return to the console and check the OAuth connection status. An error or expired state requires starting a fresh sign-in.</li>
+      <li>Discover the server's tools and review their inventory, custody configuration and per-tool policy before allowing agent use.</li>
+    </ol>
+    <p>Saving browser preferences does not apply a backend connection. Provider consent does not grant an agent a SELA tool permission. Employee identity verification, agent enrollment and execution admission are separate controls.</p>
+  </section>
+  <section>
+    <h2>5. Reviewer test procedure</h2>
+    <p>Prerequisites: an approved SELA build or accessible test environment, a SELA security-administrator account, the provider-approved SELA client configuration, a configured backend secret reference, and an isolated provider test account/project. These reviewer prerequisites must be supplied before a reproducible external review.</p>
+    <ol>
+      <li>Complete steps 2–4 and confirm that the status is connected without exposing tokens to the browser.</li>
+      <li>Initialize the upstream MCP connection and discover its tools. Record the returned inventory separately from any execution permission.</li>
+      <li>Permit one harmless read against a designated test resource. For Vercel, select a read-only project metadata tool from the discovered inventory; do not assume every Vercel tool is read-only.</li>
+      <li>Call that tool through SELA using an enrolled test agent and the required SELA admission. Verify the response and the corresponding decision/execution record.</li>
+      <li>Attempt a tool or resource outside the test agent's permission. Verify denial before the provider operation and confirm no external effect.</li>
+      <li>Revoke the connection in SELA and verify that subsequent authenticated upstream use is refused.</li>
+    </ol>
+    <p>A successful OAuth connection or tool listing proves connectivity only. Protected execution, frozen prompt/action binding, pod containment and independent forensic proof require their own same-execution evidence and negative tests.</p>
+  </section>
+  <section>
+    <h2>Provider documentation</h2>
+    <ul>
+      <li><a href="https://github.com/github/github-mcp-server/blob/main/docs/host-integration.md">GitHub MCP host integration</a></li>
+      <li><a href="https://vercel.com/docs/agent-resources/vercel-mcp">Vercel MCP setup and client review</a></li>
+      <li><a href="https://www.kroneuszerotrust.com/products/sela">SELA product overview</a></li>
+      <li><a href="sela-wordmark.svg">SELA MCP Gateway wordmark (SVG)</a></li>
+    </ul>
+  </section>
+  <footer>Last updated 3 October 2026. Documentation for the current private preview; provider approval and live execution evidence remain separate requirements.</footer>
+</body>
+</html>
